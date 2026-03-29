@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: ghcr.io/artisandev-studio/laravel-12:latest
@@ -35,34 +33,36 @@ services:
 
 # Setup Nginx Proxy otomatis & SSL Let's Encrypt (Ini menggantikan Nginx web server di host)
   nginx-proxy:
-    image: jwilder/nginx-proxy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - certs:/etc/nginx/certs
-      - vhost:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-    networks:
-      - nginx-proxy-network
+      image: jwilder/nginx-proxy
+      container_name: nginx-proxy # <--- TAMBAHKAN INI
+      restart: always
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - /var/run/docker.sock:/tmp/docker.sock:ro
+        - certs:/etc/nginx/certs
+        - vhost:/etc/nginx/vhost.d
+        - html:/usr/share/nginx/html
+      networks:
+        - nginx-proxy-network
 
   acme-companion:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    restart: always
-    environment:
-      - DEFAULT_EMAIL=ibnudirsan@gmail.com
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - certs:/etc/nginx/certs
-      - vhost:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - acme:/etc/acme.sh
-    depends_on:
-      - nginx-proxy
-    networks:
-      - nginx-proxy-network
+      image: jrcs/letsencrypt-nginx-proxy-companion
+      restart: always
+      environment:
+        - DEFAULT_EMAIL=ibnudirsan@gmail.com # (Pastikan emailmu sudah diisi di sini)
+        - NGINX_PROXY_CONTAINER=nginx-proxy  # <--- TAMBAHKAN INI
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - certs:/etc/nginx/certs
+        - vhost:/etc/nginx/vhost.d
+        - html:/usr/share/nginx/html
+        - acme:/etc/acme.sh
+      depends_on:
+        - nginx-proxy
+      networks:
+        - nginx-proxy-network
 
 networks:
   laravel-network:
