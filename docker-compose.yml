@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/${{ github.repository }}:latest # (atau pakai nama image kamu yang sekarang)
+    image: ghcr.io/artisandev-studio/laravel-12:latest
     restart: always
     env_file: 
       - .env
