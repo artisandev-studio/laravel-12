@@ -77,6 +77,14 @@ jobs:
                       docker compose pull app
                       docker compose up -d app web db nginx-proxy acme-companion
 
+                      # 5. OTOMATISASI LARAVEL (TAMBAHKAN BAGIAN INI)
+                      # -T digunakan karena GitHub Actions tidak mendukung TTY interaktif
+                      docker compose exec -T app php artisan migrate --force
+                      docker compose exec -T app php artisan storage:link
+                      docker compose exec -T app php artisan config:cache
+                      docker compose exec -T app php artisan route:cache
+                      docker compose exec -T app php artisan view:cache
+
       # Jalankan Migration hanya jika ada perubahan file migration
       - name: Run Migrations if needed
         if: needs.build-and-push-image.outputs.run_migration == 'true'
