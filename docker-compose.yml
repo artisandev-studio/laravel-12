@@ -1,6 +1,7 @@
 services:
   app:
     image: ghcr.io/artisandev-studio/laravel-12:latest
+    container_name: app
     restart: always
     env_file: 
       - .env
