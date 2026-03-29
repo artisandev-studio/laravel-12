@@ -2,29 +2,23 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/artisandev-studio/laravel-12:latest
+    image: ghcr.io/${{ github.repository }}:latest # (atau pakai nama image kamu yang sekarang)
     restart: always
-    environment:
-      - DB_HOST=db
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+    env_file: 
+      - .env
+    volumes:
+      - app-files:/var/www   # <--- TAMBAHKAN BARIS INI
     networks:
       - laravel-network
 
   web:
-    image: nginx:alpine
-    restart: always
-    volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./:/var/www
-    environment:
-      - VIRTUAL_HOST=app.artisandev.web.id
-      - LETSENCRYPT_HOST=app.artisandev.web.id
-      - LETSENCRYPT_EMAIL=ibnudirsan@gmail.com
-    networks:
-      - laravel-network
-      - nginx-proxy-network # Network untuk terhubung dengan Proxy
+      image: nginx:alpine
+      restart: always
+      volumes:
+        - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+        - app-files:/var/www   # <--- UBAH BARIS ./:/var/www MENJADI INI
+      environment:
+        - VIRTUAL_HOST=app.artisandev.web.id
 
   db:
     image: mysql:8.0
@@ -82,3 +76,4 @@ volumes:
   vhost:
   html:
   acme:
+  app-files:  # <--- TAMBAHKAN BARIS INI DI PALING BAWAH

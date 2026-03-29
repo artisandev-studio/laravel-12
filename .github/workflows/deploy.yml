@@ -57,20 +57,25 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # Buat folder jika belum ada
-            mkdir -p /home/deploy/app.artisandev.web.id
-            cd /home/deploy/app.artisandev.web.id
-            
-            # Download file docker-compose.yml terbaru dari repo raw github
-            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                 -H "Accept: application/vnd.github.v3.raw" \
-                 -O -L https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml
-            
-            # Pull image terbaru dan restart container
-            docker compose pull app
-            docker compose up -d app web db nginx-proxy acme-companion
+                      echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+                      
+                      # 1. Buat folder utama dan folder nginx
+                      mkdir -p /home/deploy/app.artisandev.web.id/docker/nginx
+                      cd /home/deploy/app.artisandev.web.id
+                      
+                      # 2. Download file docker-compose.yml
+                      curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                          -H "Accept: application/vnd.github.v3.raw" \
+                          -O -L https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml
+                      
+                      # 3. Download file konfigurasi Nginx
+                      curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                          -H "Accept: application/vnd.github.v3.raw" \
+                          -o docker/nginx/default.conf -L https://raw.githubusercontent.com/${{ github.repository }}/main/docker/nginx/default.conf
+                      
+                      # 4. Pull image terbaru dan restart container
+                      docker compose pull app
+                      docker compose up -d app web db nginx-proxy acme-companion
 
       # Jalankan Migration hanya jika ada perubahan file migration
       - name: Run Migrations if needed
