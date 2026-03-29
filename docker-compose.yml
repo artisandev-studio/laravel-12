@@ -1,23 +1,29 @@
 services:
   app:
-    image: ghcr.io/artisandev-studio/laravel-12:latest
-    container_name: app
-    restart: always
-    env_file: 
-      - .env
-    volumes:
-      - app-files:/var/www   # <--- TAMBAHKAN BARIS INI
-    networks:
-      - laravel-network
+      image: ghcr.io/artisandev-studio/laravel-12:latest
+      container_name: app  # <--- PASTIKAN ADA
+      restart: always
+      env_file: 
+        - .env
+      volumes:
+        - app-files:/var/www
+      networks:
+        - laravel-network  # <--- PASTIKAN ADA
 
   web:
       image: nginx:alpine
+      container_name: web-server # <--- Tambahkan ini agar rapi
       restart: always
       volumes:
         - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-        - app-files:/var/www   # <--- UBAH BARIS ./:/var/www MENJADI INI
+        - app-files:/var/www
       environment:
         - VIRTUAL_HOST=app.artisandev.web.id
+        - LETSENCRYPT_HOST=app.artisandev.web.id
+        - LETSENCRYPT_EMAIL=ibnudirsan@gmail.com
+      networks:
+        - laravel-network        # <--- WAJIB SAMA DENGAN APP
+        - nginx-proxy-network
 
   db:
     image: mysql:8.0
