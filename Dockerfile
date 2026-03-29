@@ -19,6 +19,11 @@ WORKDIR /var/www
 # Copy existing application directory contents
 COPY . /var/www
 
+# --- TAMBAHKAN BARIS INI ---
+# Jalankan install library saat build image
+RUN composer install --no-interaction --no-dev --optimize-autoloader
+# ---------------------------
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
