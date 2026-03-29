@@ -1,0 +1,85 @@
+name: Deploy Laravel App
+
+on:
+  push:
+    branches:
+      - main # Jalankan aksi ini jika ada push ke branch main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Wajib 0 agar git diff bekerja sempurna
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # Cek apakah ada perubahan di folder migrations
+      - name: Check for migration changes
+        id: check_migration
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^database/migrations/"; then
+            echo "run_migration=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_migration=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Buat folder jika belum ada
+            mkdir -p /home/deploy/app.artisandev.web.id
+            cd /home/deploy/app.artisandev.web.id
+            
+            # Download file docker-compose.yml terbaru dari repo raw github
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                 -H "Accept: application/vnd.github.v3.raw" \
+                 -O -L https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml
+            
+            # Pull image terbaru dan restart container
+            docker compose pull app
+            docker compose up -d app web db nginx-proxy acme-companion
+
+      # Jalankan Migration hanya jika ada perubahan file migration
+      - name: Run Migrations if needed
+        if: needs.build-and-push-image.outputs.run_migration == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/deploy/app.artisandev.web.id
+            docker compose exec -T app php artisan migrate --force
